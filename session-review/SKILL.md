@@ -1,0 +1,58 @@
+---
+name: session-review
+description: Compile a PR-style review of all repos touched this session. Suggest this command to the user when a significant coding task or feature implementation appears complete.
+disable-model-invocation: true
+---
+
+## Purpose
+
+Review all changes made across repositories this session as if each touched branch were about to be merged into its base branch. Produce a prioritized issues list. Take no remediation actions.
+
+## Steps
+
+### 1. Identify touched repositories
+
+From the session conversation, list every repository path where files were read, created, or modified. Confirm each is a git repo. If uncertain about a path, verify with Bash before including it.
+
+### 2. Establish diff scope for each repository
+
+For each repo, run these commands to determine the review surface:
+
+```bash
+git -C <path> rev-parse --abbrev-ref HEAD
+git -C <path> merge-base HEAD origin/main 2>/dev/null \
+  || git -C <path> merge-base HEAD origin/master 2>/dev/null \
+  || git -C <path> merge-base HEAD origin/develop 2>/dev/null
+git -C <path> diff <merge-base>...HEAD --stat
+```
+
+Record: repo path, current branch, base branch, merge-base commit, changed files.
+
+### 3. Spawn one review agent per repository
+
+Call `Agent` with `subagent_type: Explore` for each repo. Send all agents in a **single message** so they run in parallel. Use this prompt template (substitute actual values):
+
+---
+You are doing a pre-merge code review. Repository: `<path>`. Branch `<branch>` diverged from `<base-branch>` at `<merge-base>`.
+
+Run `git -C <path> diff <merge-base>...HEAD` to see all changes. Also read any files where the diff alone lacks enough context to judge correctness.
+
+Flag the following — nothing else:
+- Bugs and logic errors
+- Missing null/edge-case handling
+- Type or null safety issues
+- Broken API contracts or event shapes
+- Missing or inadequate test coverage for changed code
+- Security concerns (injection, data exposure, auth gaps)
+- Naming that actively misleads a reader
+
+Return a flat list. Each item: severity (`blocking` or `advisory`), file path and line reference where applicable, one-sentence description.
+---
+
+### 4. Compile results
+
+Merge all agent findings. Group by repository. Within each repo, split into **Blocking** and **Advisory** sections. Remove duplicates.
+
+### 5. Save and report
+
+Save the compiled review to `~/.claude/session-reviews/session-review-<YYYY-MM-DD>.md`, creating the directory if it does not exist. Display a brief summary inline (repos reviewed, blocking count, advisory count). Do not implement any fixes.
