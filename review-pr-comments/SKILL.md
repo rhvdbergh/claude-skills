@@ -46,7 +46,8 @@ For each comment, in original order:
 ```
 ## Comment N — <one-line summary of the reviewer's point>
 **Verdict:** Valid | Invalid
-**Reason / Fix:** <for Invalid: rebuttal with file:line evidence | for Valid: concrete fix description>
+**Reason:** <for Invalid: rebuttal with file:line evidence>
+**Fix steps:** <for Valid only: concrete, ordered steps — files to touch, functions/methods affected, the exact change to make. Write this so it can be executed directly, not summarized further.>
 ```
 
 #### Section B — Rejection list (for the reviewer)
@@ -62,13 +63,20 @@ N. <rebuttal>
 
 If every comment is valid, write "All comments are valid — no rejections." in Section B.
 
-### 5. Save the plan
+### 5. Save the reviewer rejection list
 
-Save the plan to `~/.claude/plans/pr-review-triage-<YYYY-MM-DD>.md` and state the filename.
+Save Section B alone to `~/.claude/plans/pr-review-triage-<YYYY-MM-DD>.md` and state the filename. This file is for copy-pasting back to the reviewer — it is not the execution plan.
+
+### 6. Exit plan mode with the fix plan
+
+Call `ExitPlanMode` with a plan built from Section A's **Valid** comments only, using their fix steps verbatim. This is the plan the user approves to go straight into execution — it must contain only actionable fix steps, no rebuttals, no invalid-comment discussion.
+
+If every comment was Invalid, skip `ExitPlanMode` and report that no fixes are needed — do not exit plan mode with an empty plan.
 
 ## Constraints
 
-- Do not make any code edits — this skill only plans.
+- Do not make any code edits before the plan is approved via `ExitPlanMode` — investigation and planning only.
 - Do not invent fixes for comments you have not investigated.
 - Keep rebuttals factual and collegial; cite file paths and line numbers where they strengthen the case.
+- Fix steps must be concrete enough to execute without re-deriving the approach — name the files, functions, and the change itself.
 - Adhere to the user's `%%` annotation convention: if `%%` markers appear in the plan file, address them before finalising.
