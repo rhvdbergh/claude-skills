@@ -1,6 +1,7 @@
 ---
 name: session-review
 description: Compile a PR-style review of all repos touched this session. Suggest this command to the user when a significant coding task or feature implementation appears complete.
+user_invocable: true
 disable-model-invocation: true
 ---
 
