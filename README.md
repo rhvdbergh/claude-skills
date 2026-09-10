@@ -24,14 +24,29 @@ Personal Claude Code skills — reusable slash commands for my day-to-day workfl
 
 | Skill | Command | Description |
 |-------|---------|-------------|
-| prune-comments | `/prune-comments [<paths>]` | Delete comments that narrate *what* the code does, keeping only those explaining a non-obvious *why* |
+| prune-comments | `/prune-comments [--strict\|--all] [<paths>]` | Delete comments that narrate *what* the code does, keeping only those explaining a non-obvious *why*. Works on the working diff by default |
+| remove-comments | `/remove-comments [<paths>]` | prune-comments in strict mode: delete every comment on a line this branch added, except tool directives, license headers, and XML doc comments |
 | resume-plan | `/resume-plan` | List and load previously saved plans from `~/.claude/plans/`, filtered to the current repo |
+| find-session | `/find-session <pattern>` | Search past session logs for a keyword and print a `claude --resume` command for the session you pick |
+
+### Sound notifications
+
+| Skill | Command | Description |
+|-------|---------|-------------|
+| peon-ping-toggle | `/peon-ping-toggle` | Turn peon-ping sounds on or off, and apply any peon-ping config change |
+| peon-ping-config | — | Model-invoked helper that edits the peon-ping config: volume, active pack, pack rotation, and sound categories |
 
 The `-loop` variants edit code directly — invoking one is the authorization to do so.
+
+`/prune-comments --all` covers every source file in the repo, not only the diff. `--strict --all` is refused.
 
 ## Installation
 
 Copy (or symlink) the skill directories you want into your `~/.claude/skills/` directory. Claude Code picks them up automatically.
+
+`find-session` also needs the `claude-find` script on your PATH (it lives in the dotfiles repo at `~/.local/bin/claude-find`), plus `rg` and `jq`.
+
+The peon-ping skills need the peon-ping tool and its config at `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/peon-ping/config.json`.
 
 ## License
 

@@ -61,7 +61,7 @@ The page has four sections:
 
 3. **Code Walkthrough** — One entry per changed file (logical order: data model → service → API → UI, not diff order). Each entry has: file path, one-sentence role, plain-English explanation of what changed and why, and a before/after code block where relevant.
 
-4. **Quiz** — 5 multiple-choice questions testing genuine comprehension. Each question has 4 options (A–D). Clicking an option reveals whether it is correct and shows a one-sentence explanation. Only one reveal per question.
+4. **Quiz** — 5 multiple-choice questions testing genuine comprehension. Each question has 4 options. Clicking an option reveals whether it is correct and shows a one-sentence explanation. Only one reveal per question. See **Quiz construction** below — the answer must not be guessable from its position or its length.
 
 #### Design
 
@@ -69,7 +69,7 @@ The page has four sections:
 - Page width: `.page` starts at `width: 860px; max-width: calc(100vw - 4rem); margin: 0 auto`. A fixed drag handle (`.resize-handle`, 6px wide, `cursor: ew-resize`) is positioned at the right edge of `.page` via JS. Dragging it adjusts `page.style.width`; the new width is persisted in `localStorage`. The handle turns indigo on hover/drag. On `window resize`, reposition the handle. Multiply mouse delta by 2 (since the centered page expands symmetrically) and clamp between 400px and `window.innerWidth - 64`.
 - Syntax-highlighted code blocks: dark background (`#1e1e1e`), monospace font, appropriate token colors (keywords blue, strings green, comments grey, types teal). Apply highlighting via a small inline JS function — no external libraries.
 - Before/after code blocks side by side (`flex-direction: row; flex-wrap: wrap`), each side `flex: 1 1 300px`. Each `pre` block uses `overflow-x: auto` so long lines scroll horizontally rather than wrapping.
-- Quiz options styled as clickable buttons. On click: correct answer turns green with a checkmark, wrong answers turn red with an ✗. Explanation appears below. Disable all options after one is chosen.
+- Quiz options styled as clickable buttons, built by JS from the shuffled option data (see **Quiz construction**). On click: correct answer turns green with a checkmark, wrong answers turn red with an ✗. Explanation appears below. Disable all options after one is chosen.
 - Section headers use a clear visual hierarchy. Use a subtle left border or colored rule to distinguish sections.
 - `<title>` set to the explanation title. `<meta name="description">` set to a one-line summary.
 
@@ -79,6 +79,38 @@ The page has four sections:
 - Define any jargon inline in parentheses the first time it appears.
 - Keep code snippets short — enough to illustrate the point, not the full function.
 - Quiz questions should test genuine comprehension, not trivia. Medium difficulty.
+
+#### Quiz construction
+
+A reader must not be able to pick the answer without understanding the change. Two tells give the answer away: the position of the correct option, and its length. Remove both.
+
+**Data shape.** Do not hard-code the option order in the HTML. Emit each question as data, with the options in authoring order and the correct one marked by a flag:
+
+```js
+const QUIZ = [
+  {
+    question: "...",
+    options: [
+      { text: "...", correct: true,  why: "..." },
+      { text: "...", correct: false, why: "..." },
+      { text: "...", correct: false, why: "..." },
+      { text: "...", correct: false, why: "..." }
+    ]
+  }
+];
+```
+
+**Shuffle at render time.** On page load, shuffle each question's options with a Fisher-Yates shuffle before you build the buttons. Derive the A–D letter from the shuffled index, never from the authoring order. Because the correct option carries a flag, the shuffle cannot break the scoring.
+
+**Length parity.** The shuffle fixes position. It does not fix length, so you must write the options to the same size:
+
+- Every option of one question must be within about 20% of the others in word count.
+- Write all four options first, then trim the longest and expand the shortest until they match.
+- Put the reason the answer is correct in the `why` field, not in the option text. The `why` field is only shown after the click, so it cannot leak the answer.
+- Give every wrong option a real claim about the code. Do not write a short wrong option that is obviously a placeholder.
+- Use the same grammar for all four options: if one starts with a verb, all start with a verb.
+
+**Check before you save.** For each question, count the words of each option and compare. If one option is the longest in more than two of the five questions, rewrite it.
 
 ### 6. Report
 
