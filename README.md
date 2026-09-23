@@ -44,7 +44,15 @@ The `-loop` variants edit code directly — invoking one is the authorization to
 
 Copy (or symlink) the skill directories you want into your `~/.claude/skills/` directory. Claude Code picks them up automatically.
 
-`find-session` also needs the `claude-find` script on your PATH (it lives in the dotfiles repo at `~/.local/bin/claude-find`), plus `rg` and `jq`.
+### Dotfiles
+
+The rest of the environment (shell, editor, tmux, and scripts such as `claude-find`) is its own repo:
+
+```bash
+git clone git@github.com:rhvdbergh/dotfiles.git
+```
+
+`find-session` also needs the `claude-find` script on your PATH (it lives in the [dotfiles repo](https://github.com/rhvdbergh/dotfiles) at `~/.local/bin/claude-find`), plus `rg` and `jq`.
 
 The peon-ping skills need the peon-ping tool and its config at `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/peon-ping/config.json`.
 

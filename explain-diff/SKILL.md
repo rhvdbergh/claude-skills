@@ -1,6 +1,6 @@
 ---
 name: explain-diff
-description: Generate a rich HTML explanation of a git diff — background, intuition, code walkthrough, and an interactive quiz — saved to ~/.claude/diff-explanations/. Use when the user types /explain-diff [<ref>].
+description: Generate a rich HTML explanation of a git diff — background, intuition, code walkthrough, four review sections (duplication, complexity delta, pattern precedent with blame authors, responsibility boundaries), and an interactive quiz — saved to ~/.claude/diff-explanations/. Use when the user types /explain-diff [<ref>].
 user_invocable: true
 ---
 
@@ -36,7 +36,41 @@ Skip generated files, lock files, migration files, and `.snap` files.
 
 For each changed file (up to 8 files), use the Read tool to read the full file. Note the file's role in the system and how the changed lines fit into the larger context. Never explain from the diff alone.
 
-### 4. Derive slug and output path
+### 4. Gather evidence for the review sections
+
+The four review sections (see **Structure**) must rest on searches of the repo, not on the diff alone. Collect the evidence now, and keep every file:line and command you use.
+
+**Duplication.** List each new component, handler, endpoint, query, hook, or service class that the diff adds. For each one, search the repo for code that already does the same job:
+
+```bash
+git grep -n -i "<name or key term>" -- ':!*.lock' ':!*generated*'
+git grep -n "<route, table name, action type, or event name>"
+```
+
+Search by responsibility as well as by name: the same route, the same table, the same Redux action, the same MediatR request, the same UI element.
+
+**Complexity.** Scan the added lines for:
+
+- locks and coordination: `lock`, `SemaphoreSlim`, `Mutex`, `Interlocked`, transactions, retries, distributed locks
+- abstractions: new interfaces, base classes, generics, wrappers, factories, decorators
+- indirection: new DI registrations, events and handlers, pipeline behaviors, middleware, config flags, extra call layers between the caller and the work
+
+Also note what the diff removes, so the delta is net.
+
+**Precedent.** Name the main pattern the diff uses (for example "repository per aggregate", "optimistic concurrency with a row version", "custom hook for fetch state"). Find up to 5 other places that use it, then get the author and date of each:
+
+```bash
+git grep -n "<pattern marker>"
+git blame -L <line>,<line> --porcelain <file> | grep -E '^(author|author-time) '
+```
+
+Convert `author-time` to a `YYYY-MM-DD` date. If no other place uses the pattern, record that the diff introduces it.
+
+**Ownership.** For each changed file, decide its layer (for example domain, application, infrastructure, API, UI) and its repo. Check the project's architecture docs (`./docs`, `CLAUDE.md`, architecture tests) for the rule that says which layer owns what. Cite the rule if you find one.
+
+If a search finds nothing, record the search and the result "no evidence found". Never fill a section from inference.
+
+### 5. Derive slug and output path
 
 - **Slug**: branch name with `/`, `_`, spaces replaced by `-`, lowercased, truncated to 40 chars. If on main or detached HEAD, derive a 3-word kebab-case summary from the changes.
 - **Output path**: `~/.claude/diff-explanations/<repo>_<YYYY-MM-DD>_<slug>.html`
@@ -47,13 +81,13 @@ Each run always creates a new file — never overwrite an existing one.
 mkdir -p ~/.claude/diff-explanations
 ```
 
-### 5. Write the HTML file
+### 6. Write the HTML file
 
 Use the Write tool to write a single self-contained HTML file to the output path. The file must have no external dependencies — all CSS and JS inline.
 
 #### Structure
 
-The page has four sections:
+The page has eight sections. Sections 1–3 are the main explanation. Sections 4–7 are the review sections, and they are always present, even when a section has no finding. Section 8 is the quiz.
 
 1. **Background** — 2–4 sentence overview of the changed code's role, what it does before and after, and why the change matters.
 
@@ -61,7 +95,15 @@ The page has four sections:
 
 3. **Code Walkthrough** — One entry per changed file (logical order: data model → service → API → UI, not diff order). Each entry has: file path, one-sentence role, plain-English explanation of what changed and why, and a before/after code block where relevant.
 
-4. **Quiz** — 5 multiple-choice questions testing genuine comprehension. Each question has 4 options. Clicking an option reveals whether it is correct and shows a one-sentence explanation. Only one reveal per question. See **Quiz construction** below — the answer must not be guessable from its position or its length.
+4. **Duplication Check** — For each new component, handler, endpoint, or service from step 4, state whether existing code overlaps it. Render a table: new item, existing item (file:line), overlap (full, partial, none), and a one-sentence note on whether to reuse, merge, or keep both. If nothing overlaps, list the searches you ran and say "no overlap found".
+
+5. **Complexity Delta** — What the diff adds and removes in locks, abstractions, and indirection. Render a table: item, kind (lock, abstraction, indirection), added or removed, and what it buys against what it costs (for example "the `SemaphoreSlim` stops two imports writing the same batch; every caller now awaits it"). End with a one-sentence net verdict: the complexity goes up, goes down, or stays the same, and whether the gain justifies it.
+
+6. **Pattern Precedent** — Where else the repo uses the main pattern of the diff. Render a table: file:line, author, date (from `git blame`), and a short note on whether this diff follows or departs from that usage. If the diff departs from the precedent, say how. If the diff is the first use, say so, and say that it sets the precedent.
+
+7. **Responsibility Boundaries** — Which layer and which repo owns each part of the changed behavior. Render a table: behavior, owning layer, owning repo, and the file that holds it. Flag every place where logic sits in a layer that does not own it (for example business rules in a controller or in a React component, or a contract that the frontend defines and the backend must follow). Cite the architecture rule when one exists.
+
+8. **Quiz** — 5 multiple-choice questions testing genuine comprehension. Each question has 4 options. Clicking an option reveals whether it is correct and shows a one-sentence explanation. Only one reveal per question. See **Quiz construction** below — the answer must not be guessable from its position or its length.
 
 #### Design
 
@@ -71,6 +113,9 @@ The page has four sections:
 - Before/after code blocks side by side (`flex-direction: row; flex-wrap: wrap`), each side `flex: 1 1 300px`. Each `pre` block uses `overflow-x: auto` so long lines scroll horizontally rather than wrapping.
 - Quiz options styled as clickable buttons, built by JS from the shuffled option data (see **Quiz construction**). On click: correct answer turns green with a checkmark, wrong answers turn red with an ✗. Explanation appears below. Disable all options after one is chosen.
 - Section headers use a clear visual hierarchy. Use a subtle left border or colored rule to distinguish sections.
+- Give the four review sections a different left-border color from the main explanation, and put a small "Review" label above the first one, so the reader sees where the explanation ends.
+- Review tables: full width, zebra rows, `font-size: 0.9em`, file:line cells in monospace. Wrap each table in a container with `overflow-x: auto`.
+- Flags (an overlap to merge, a complexity cost that is not justified, a departure from precedent, a layer violation) get an amber badge. A section with no flags shows a grey "No findings" badge next to its header.
 - `<title>` set to the explanation title. `<meta name="description">` set to a one-line summary.
 
 #### Content guidelines
@@ -78,7 +123,8 @@ The page has four sections:
 - Write in the style of Martin Kleppmann: clear, precise, builds intuition before detail.
 - Define any jargon inline in parentheses the first time it appears.
 - Keep code snippets short — enough to illustrate the point, not the full function.
-- Quiz questions should test genuine comprehension, not trivia. Medium difficulty.
+- Quiz questions should test genuine comprehension, not trivia. Medium difficulty. At least one question must come from the review sections.
+- Every claim in a review section cites a file:line from the current checkout. A claim with no evidence is written as "no evidence found", never as a guess.
 
 #### Quiz construction
 
@@ -112,8 +158,9 @@ const QUIZ = [
 
 **Check before you save.** For each question, count the words of each option and compare. If one option is the longest in more than two of the five questions, rewrite it.
 
-### 6. Report
+### 7. Report
 
 Tell the user:
 - The full path to the saved file
 - How to open it: `open <path>`
+- One line per review section with its flag count (for example "Duplication: 1 overlap, Complexity: 0, Precedent: 1 departure, Boundaries: 0")
