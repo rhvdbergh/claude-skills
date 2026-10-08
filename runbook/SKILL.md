@@ -44,7 +44,9 @@ Use the first method that can show the result:
 2. **Swagger UI** — .NET projects, when the UI cannot reach the behavior. Also any other project that already serves a Swagger UI.
 3. **curl** — only when neither of the above works.
 
-When the only effect is in the database or a log, give the exact query or the log line to look for.
+When the only effect is in a log, give the log line to look for.
+
+When the only effect is in the database, give the SQL itself in a ` ```sql ` block under the step, ready to paste into a local SQL client. Never wrap it in a command-line helper (`sqlcmd`, `psql -c`, `docker exec`, a script). Write it in the project's SQL dialect, with table and column names taken from the code or migrations. If a test needs data that only SQL can set up, put that SQL under **Setup**.
 
 ### 4. Write the runbook
 
