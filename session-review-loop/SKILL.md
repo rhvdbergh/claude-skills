@@ -1,6 +1,6 @@
 ---
 name: session-review-loop
-description: Iterate session-review's self-review until no blocking issues remain — fix confirmed issues, re-review the diff, repeat, then prune comments as a final pass. Advisory/nitpick findings are reported but never block the loop.
+description: Iterate session-review's self-review until no blocking issues remain — fix confirmed issues, re-review the diff, repeat, then prune comments and run the review checks (duplication, complexity delta, pattern precedent, responsibility boundaries) as a final pass. Advisory/nitpick findings are reported but never block the loop.
 user_invocable: true
 disable-model-invocation: true
 ---
@@ -87,16 +87,24 @@ Run this once, after the loop has terminated — whether it closed clean or hit 
 
 Read `~/.claude/skills/prune-comments/SKILL.md` and follow its steps directly. Do not call it via the `Skill` tool — it is marked `disable-model-invocation`, so only the user can invoke it that way. Scope it to the diff this loop produced, per-repo, using the merge-base already established in step 1.
 
-This step never reopens the loop. If pruning breaks a check, restore the offending comment and re-verify, but do not start another review round. Keep prune-comments' report — it goes into step 8 as its own section.
+This step never reopens the loop. If pruning breaks a check, restore the offending comment and re-verify, but do not start another review round. Keep prune-comments' report — it goes into step 9 as its own section.
 
-### 8. Save and report
+### 8. Run the review checks
+
+Write status: `detail="review checks"`.
+
+Run this once, on the final diff, after pruning. Same as session-review step 6: one Explore agent per repo with the review-checks prompt, then verify each flag yourself and move the flags that do not hold to Notes.
+
+Review-check flags are never fixed and never reopen the loop. They are information for the user.
+
+### 9. Save and report
 
 Clear the status file (see Status line above) — the loop is done, running or capped.
 
-Save the full record — every round's Confirmed fixes, the accumulated Notes, and the comment-pruning report from step 7 — to `~/.claude/session-reviews/session-review-loop-<YYYY-MM-DD>.md`, creating the directory if needed. Report inline: rounds run, fixes applied per round, remaining advisory notes, whether the loop closed clean or hit the cap, and the pruning summary as a final section.
+Save the full record — every round's Confirmed fixes, the accumulated Notes, the comment-pruning report from step 7, and a `## Review checks` section with a subsection per repo (its summary line and its four tables) from step 8 — to `~/.claude/session-reviews/session-review-loop-<YYYY-MM-DD>.md`, creating the directory if needed. Report inline: rounds run, fixes applied per round, remaining advisory notes, whether the loop closed clean or hit the cap, the pruning summary, and the review checks as a final section (the summary line per repo, then each flag on one line: check, file:line, one-sentence reason).
 
 ## Constraints
 
-- Never spend a round on advisory/nitpick findings — they go to Notes and stay there; they never block or extend the loop.
+- Never spend a round on advisory/nitpick findings or review-check flags — they go to the report and stay there; they never block or extend the loop.
 - Don't widen scope beyond what the diff and confirmed findings call for.
 - If a fix would require a DB migration, a `docker compose` command, or anything session-review's underlying checks would normally ask about, ask before doing it — the round cap governs review iteration, not destructive operations.

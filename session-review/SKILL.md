@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 ## Purpose
 
-Review all changes made across repositories this session as if each touched branch were about to be merged into its base branch. Independently verify each flagged issue, then produce a ready-to-execute fix plan for confirmed issues and a separate notes list for everything else.
+Review all changes made across repositories this session as if each touched branch were about to be merged into its base branch. Independently verify each flagged issue, then produce a ready-to-execute fix plan for confirmed issues and a separate notes list for everything else. Finish with the four review checks from `~/.claude/skills/shared/review-checks.md` (duplication, complexity delta, pattern precedent, responsibility boundaries).
 
 ## Steps
 
@@ -68,12 +68,35 @@ Merge all verified findings. Group by repository. Within each repo, split into t
 
 Remove duplicates.
 
-### 6. Save the full report
+### 6. Run the review checks
 
-Save the compiled review (both Confirmed fixes and Notes, across all repos) to `~/.claude/session-reviews/session-review-<YYYY-MM-DD>.md`, creating the directory if it does not exist. State the filename.
+Call `Agent` with `subagent_type: Explore` for each repo, all in a **single message**. Use this prompt template:
 
-### 7. Exit plan mode with the fix plan
+---
+Read `~/.claude/skills/shared/review-checks.md` and run its four checks on repository `<path>`, for the diff `git -C <path> diff <merge-base>...HEAD`. Return the four tables from its **Tables** section, every command you ran, and the summary line from its **Summary line** section.
+---
 
-Call `ExitPlanMode` with a plan built from the **Confirmed fixes** only, across all repos, using their fix steps verbatim. This is the plan the user approves to go straight into execution — no advisory items, no notes, no unconfirmed findings.
+Treat each flag as an unverified claim, as in step 4: read the cited file:line and confirm it. Drop a flag that does not hold, and add it to Notes with a one-sentence reason.
+
+When more than one repo is touched, compare the Responsibility Boundaries tables across repos. A contract that one repo defines and another repo must follow is a flag in the repo that does not own it.
+
+Review-check results are information, not fixes. They never enter the Confirmed fixes or the plan.
+
+### 7. Save the full report
+
+Save the compiled review (both Confirmed fixes and Notes, across all repos) to `~/.claude/session-reviews/session-review-<YYYY-MM-DD>.md`, creating the directory if it does not exist. Add a `## Review checks` section with a subsection per repo that holds its summary line and its four tables. State the filename.
+
+### 8. Show the review checks
+
+Print the review checks in the terminal before you exit plan mode, also when no fix is needed:
+
+- per repo, the summary line
+- each flag on one line: check, file:line, one-sentence reason
+
+If a repo has no flags, print its summary line only.
+
+### 9. Exit plan mode with the fix plan
+
+Call `ExitPlanMode` with a plan built from the **Confirmed fixes** only, across all repos, using their fix steps verbatim. This is the plan the user approves to go straight into execution — no advisory items, no notes, no unconfirmed findings, no review-check results.
 
 If no findings were Confirmed, skip `ExitPlanMode` and report that no fixes are needed.

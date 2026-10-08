@@ -8,8 +8,8 @@ Personal Claude Code skills — reusable slash commands for my day-to-day workfl
 
 | Skill | Command | Description |
 |-------|---------|-------------|
-| session-review | `/session-review` | Compile a PR-style review of every repo touched this session, verify each finding, and produce a fix plan |
-| session-review-loop | `/session-review-loop` | Run session-review, fix confirmed blocking issues, re-review, and repeat until clean (round-capped), then prune comments |
+| session-review | `/session-review` | Compile a PR-style review of every repo touched this session, verify each finding, produce a fix plan, and finish with the review checks |
+| session-review-loop | `/session-review-loop` | Run session-review, fix confirmed blocking issues, re-review, and repeat until clean (round-capped), then prune comments and run the review checks |
 | review-pr-comments | `/review-pr-comments` | Triage PR review comments in plan mode: investigate each one, reject invalid ones with a reason, plan fixes for the rest |
 | review-pr-comments-loop | `/review-pr-comments-loop` | Triage PR comments and implement the valid fixes directly, then hand off to session-review-loop to catch regressions |
 
@@ -18,7 +18,7 @@ Personal Claude Code skills — reusable slash commands for my day-to-day workfl
 | Skill | Command | Description |
 |-------|---------|-------------|
 | explain | `/explain [<topic>]` | Recap the conversation in plain language, stepping through the relevant code with concrete examples |
-| explain-diff | `/explain-diff [<ref>]` | Generate a self-contained HTML walkthrough of a git diff — background, intuition, code tour, and an interactive quiz |
+| explain-diff | `/explain-diff [<ref>]` | Generate a self-contained HTML walkthrough of a git diff — background, intuition, code tour, the review checks, and an interactive quiz |
 
 ### Housekeeping
 
@@ -39,6 +39,17 @@ Personal Claude Code skills — reusable slash commands for my day-to-day workfl
 The `-loop` variants edit code directly — invoking one is the authorization to do so.
 
 `/prune-comments --all` covers every source file in the repo, not only the diff. `--strict --all` is refused.
+
+### Review checks
+
+`session-review`, `session-review-loop`, and `explain-diff` share four checks on the diff, defined once in [`shared/review-checks.md`](shared/review-checks.md):
+
+- **Duplication** — new code that overlaps code the repo already has
+- **Complexity delta** — locks, abstractions, and indirection added or removed, and whether the gain justifies the cost
+- **Pattern precedent** — other uses of the diff's main pattern, with `git blame` author and date
+- **Responsibility boundaries** — which layer and repo owns each behavior, and logic that sits in the wrong one
+
+Review-check flags are information only: they never enter a fix plan and never extend a loop. `shared/` is not a skill directory; install it next to the skills that read it.
 
 ## Installation
 
