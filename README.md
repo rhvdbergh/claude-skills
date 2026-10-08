@@ -13,6 +13,12 @@ Personal Claude Code skills — reusable slash commands for my day-to-day workfl
 | review-pr-comments | `/review-pr-comments` | Triage PR review comments in plan mode: investigate each one, reject invalid ones with a reason, plan fixes for the rest |
 | review-pr-comments-loop | `/review-pr-comments-loop` | Triage PR comments and implement the valid fixes directly, then hand off to session-review-loop to catch regressions |
 
+### Testing
+
+| Skill | Command | Description |
+|-------|---------|-------------|
+| runbook | `/runbook` | Write a manual smoke-test runbook for this session's work (UI first, then Swagger, then curl), publish it to wisplet with a checkbox per step, and save the ticked results as a markdown table in `~/.claude/runbook-tests/` |
+
 ### Explanation
 
 | Skill | Command | Description |
