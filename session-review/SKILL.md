@@ -80,7 +80,7 @@ Treat each flag as an unverified claim, as in step 4: read the cited file:line a
 
 When more than one repo is touched, compare the Responsibility Boundaries tables across repos. A contract that one repo defines and another repo must follow is a flag in the repo that does not own it.
 
-Review-check results are information, not fixes. They never enter the Confirmed fixes or the plan.
+Review-check results are information, not fixes. They never enter the Confirmed fixes or the bug table.
 
 ### 7. Save the full report
 
@@ -97,6 +97,8 @@ If a repo has no flags, print its summary line only.
 
 ### 9. Exit plan mode with the fix plan
 
-Call `ExitPlanMode` with a plan built from the **Confirmed fixes** only, across all repos, using their fix steps verbatim. This is the plan the user approves to go straight into execution — no advisory items, no notes, no unconfirmed findings, no review-check results.
+Call `ExitPlanMode` with a plan built from the **Confirmed fixes** only, across all repos, using their fix steps verbatim. This is the plan the user approves to go straight into execution — no advisory items, no notes, no unconfirmed findings.
 
-If no findings were Confirmed, skip `ExitPlanMode` and report that no fixes are needed.
+After the fix sections, add a `## Review checks (information only)` section with the same per-repo content as the report from step 7: the summary line and the four tables. It is for the user to read in the plan; it holds no fix steps, and nothing in it is executed. It comes before any `## Notes and answers` section and before the Comment Policy section, which stays last.
+
+If no findings were Confirmed, skip `ExitPlanMode` and report that no fixes are needed. The review checks are already in the terminal from step 8 and in the report from step 7.
