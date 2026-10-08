@@ -12,6 +12,7 @@ Personal Claude Code skills — reusable slash commands for my day-to-day workfl
 | session-review-loop | `/session-review-loop` | Run session-review, fix confirmed blocking issues, re-review, and repeat until clean (round-capped), then prune comments and run the review checks |
 | review-pr-comments | `/review-pr-comments` | Triage PR review comments in plan mode: investigate each one, reject invalid ones with a reason, plan fixes for the rest |
 | review-pr-comments-loop | `/review-pr-comments-loop` | Triage PR comments and implement the valid fixes directly, then hand off to session-review-loop to catch regressions |
+| prep-pr | `/prep-pr` | Fill in the repo's PR template (or a short default) with this session's work, the known ticket number, and the latest `/runbook` results; saved to `~/.claude/pr-prep/` |
 
 ### Testing
 
