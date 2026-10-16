@@ -12,6 +12,7 @@ Personal Claude Code skills — reusable slash commands for my day-to-day workfl
 | session-review-loop | `/session-review-loop` | Run session-review, fix confirmed blocking issues, re-review, and repeat until clean (round-capped), then prune comments and run the review checks |
 | review-pr-comments | `/review-pr-comments` | Triage PR review comments in plan mode: investigate each one, reject invalid ones with a reason, plan fixes for the rest |
 | review-pr-comments-loop | `/review-pr-comments-loop` | Triage PR comments and implement the valid fixes directly, then hand off to session-review-loop to catch regressions |
+| arch-review | `/arch-review [<pr>\|<ref>]` | Review the structure of a PR, a ref, or this session's work: conformance to the repo's own architecture patterns, plus dependency direction, responsibility placement, coupling, contracts, and data ownership; saved to `~/.claude/arch-reviews/` |
 | prep-pr | `/prep-pr` | Fill in the repo's PR template (or a short default) with this session's work, the known ticket number, and the latest `/runbook` results; saved to `~/.claude/pr-prep/` |
 
 ### Testing
@@ -35,6 +36,7 @@ Personal Claude Code skills — reusable slash commands for my day-to-day workfl
 | remove-comments | `/remove-comments [<paths>]` | prune-comments in strict mode: delete every comment on a line this branch added, except tool directives, license headers, and XML doc comments |
 | resume-plan | `/resume-plan` | List and load previously saved plans from `~/.claude/plans/`, filtered to the current repo |
 | find-session | `/find-session <pattern>` | Search past session logs for a keyword and print a `claude --resume` command for the session you pick |
+| prep-compact | `/prep-compact` | Write a retention brief of the session into the reply and to `~/.claude/compact-briefs/`, then copy a ready-to-paste `/compact …` command to the clipboard |
 
 ### Sound notifications
 
@@ -58,6 +60,10 @@ The `-loop` variants edit code directly — invoking one is the authorization to
 
 Review-check flags are information only: they never enter a fix plan and never extend a loop. `shared/` is not a skill directory; install it next to the skills that read it.
 
+### Architecture patterns
+
+`arch-review` learns the architecture patterns of each repo once and keeps them in `~/.claude/arch-patterns/<repo-key>.md`, outside the repo. The key comes from the origin URL, so every worktree of a repo shares one map. Edit the map by hand: set `Confirmed: yes` on an entry to make it a rule, or move an entry to `Rejected` to stop the skill from inferring it again.
+
 ## Installation
 
 Copy (or symlink) the skill directories you want into your `~/.claude/skills/` directory. Claude Code picks them up automatically.
@@ -71,6 +77,8 @@ git clone git@github.com:rhvdbergh/dotfiles.git
 ```
 
 `find-session` also needs the `claude-find` script on your PATH (it lives in the [dotfiles repo](https://github.com/rhvdbergh/dotfiles) at `~/.local/bin/claude-find`), plus `rg` and `jq`.
+
+`prep-compact` uses `pbcopy` (macOS) for the clipboard step.
 
 The peon-ping skills need the peon-ping tool and its config at `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/peon-ping/config.json`.
 
