@@ -1,6 +1,6 @@
 ---
 name: session-review-loop
-description: Iterate session-review's self-review until no blocking issues remain — fix confirmed issues, re-review the diff, repeat, then prune comments and run the review checks (duplication, complexity delta, pattern precedent, responsibility boundaries) as a final pass. Advisory/nitpick findings are reported but never block the loop.
+description: Iterate session-review's self-review until no blocking issues remain — fix confirmed issues, re-review the diff, repeat, then prune comments and run the review checks (duplication, complexity delta) and the architecture review (pattern conformance, dependency direction, responsibility placement, contracts, data ownership) as a final pass. Advisory/nitpick findings are reported but never block the loop.
 user_invocable: true
 disable-model-invocation: true
 ---
@@ -43,8 +43,11 @@ git -C <path> rev-parse --abbrev-ref HEAD
 git -C <path> merge-base HEAD origin/main 2>/dev/null \
   || git -C <path> merge-base HEAD origin/master 2>/dev/null \
   || git -C <path> merge-base HEAD origin/develop 2>/dev/null
-git -C <path> diff <merge-base>...HEAD --stat
+git -C <path> diff <merge-base> --stat
+git -C <path> ls-files --others --exclude-standard
 ```
+
+The diff against the merge-base includes uncommitted changes, so each round sees the fixes of the round before it. Treat each untracked file as a new file.
 
 Re-run this at the start of every round — the diff grows as fixes land; the merge-base itself doesn't change mid-loop.
 
@@ -89,22 +92,26 @@ Read `~/.claude/skills/prune-comments/SKILL.md` and follow its steps directly. D
 
 This step never reopens the loop. If pruning breaks a check, restore the offending comment and re-verify, but do not start another review round. Keep prune-comments' report — it goes into step 9 as its own section.
 
-### 8. Run the review checks
+### 8. Run the review checks and the architecture review
 
 Write status: `detail="review checks"`.
 
 Run this once, on the final diff, after pruning. Same as session-review step 6: one Explore agent per repo with the review-checks prompt, then verify each flag yourself and move the flags that do not hold to Notes.
 
-Review-check flags are never fixed and never reopen the loop. They are information for the user.
+Write status: `detail="architecture review"`.
+
+Then run the architecture review as in session-review step 7: follow steps 2 to 8 of `~/.claude/skills/arch-review/SKILL.md` per repo, with the scope from step 1 of this skill.
+
+Review-check flags and architecture findings are never fixed and never reopen the loop, blocking findings included. A blocking architecture finding is a design change, and a design change needs the user's decision. They are information for the user.
 
 ### 9. Save and report
 
 Clear the status file (see Status line above) — the loop is done, running or capped.
 
-Save the full record — every round's Confirmed fixes, the accumulated Notes, the comment-pruning report from step 7, and a `## Review checks` section with a subsection per repo (its summary line and its four tables) from step 8 — to `~/.claude/session-reviews/session-review-loop-<YYYY-MM-DD>.md`, creating the directory if needed. Report inline: rounds run, fixes applied per round, remaining advisory notes, whether the loop closed clean or hit the cap, the pruning summary, and the review checks as a final section (the summary line per repo, then each flag on one line: check, file:line, one-sentence reason).
+Save the full record — every round's Confirmed fixes, the accumulated Notes, the comment-pruning report from step 7, and the `## Review checks` and `## Architecture review` sections from step 8, in the format of session-review step 8 — to `~/.claude/session-reviews/session-review-loop-<YYYY-MM-DD>.md`, creating the directory if needed. Report inline: rounds run, fixes applied per round, remaining advisory notes, whether the loop closed clean or hit the cap, the pruning summary, and the review checks and the architecture review as a final section, in the format of session-review step 9.
 
 ## Constraints
 
-- Never spend a round on advisory/nitpick findings or review-check flags — they go to the report and stay there; they never block or extend the loop.
+- Never spend a round on advisory/nitpick findings, review-check flags, or architecture findings — they go to the report and stay there; they never block or extend the loop.
 - Don't widen scope beyond what the diff and confirmed findings call for.
 - If a fix would require a DB migration, a `docker compose` command, or anything session-review's underlying checks would normally ask about, ask before doing it — the round cap governs review iteration, not destructive operations.

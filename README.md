@@ -8,8 +8,8 @@ Personal Claude Code skills — reusable slash commands for my day-to-day workfl
 
 | Skill | Command | Description |
 |-------|---------|-------------|
-| session-review | `/session-review` | Compile a PR-style review of every repo touched this session, verify each finding, produce a fix plan, and finish with the review checks |
-| session-review-loop | `/session-review-loop` | Run session-review, fix confirmed blocking issues, re-review, and repeat until clean (round-capped), then prune comments and run the review checks |
+| session-review | `/session-review` | Compile a PR-style review of every repo touched this session, verify each finding, produce a fix plan, and finish with the review checks and the architecture review from `arch-review` |
+| session-review-loop | `/session-review-loop` | Run session-review, fix confirmed blocking issues, re-review, and repeat until clean (round-capped), then prune comments and run the review checks and the architecture review |
 | review-pr-comments | `/review-pr-comments` | Triage PR review comments in plan mode: investigate each one, reject invalid ones with a reason, plan fixes for the rest |
 | review-pr-comments-loop | `/review-pr-comments-loop` | Triage PR comments and implement the valid fixes directly, then hand off to session-review-loop to catch regressions |
 | arch-review | `/arch-review [<pr>\|<ref>]` | Review the structure of a PR, a ref, or this session's work: conformance to the repo's own architecture patterns, plus dependency direction, responsibility placement, coupling, contracts, and data ownership; saved to `~/.claude/arch-reviews/` |
@@ -51,7 +51,7 @@ The `-loop` variants edit code directly — invoking one is the authorization to
 
 ### Review checks
 
-`session-review`, `session-review-loop`, and `explain-diff` share four checks on the diff, defined once in [`shared/review-checks.md`](shared/review-checks.md):
+`session-review`, `session-review-loop`, and `explain-diff` share the checks on the diff, defined once in [`shared/review-checks.md`](shared/review-checks.md). `explain-diff` runs all four. The two `session-review` skills run only duplication and complexity delta, because the architecture review from `arch-review` checks precedent and boundaries against the pattern map:
 
 - **Duplication** — new code that overlaps code the repo already has
 - **Complexity delta** — locks, abstractions, and indirection added or removed, and whether the gain justifies the cost
@@ -63,6 +63,8 @@ Review-check flags are information only: they never enter a fix plan and never e
 ### Architecture patterns
 
 `arch-review` learns the architecture patterns of each repo once and keeps them in `~/.claude/arch-patterns/<repo-key>.md`, outside the repo. The key comes from the origin URL, so every worktree of a repo shares one map. Edit the map by hand: set `Confirmed: yes` on an entry to make it a rule, or move an entry to `Rejected` to stop the skill from inferring it again.
+
+`session-review` and `session-review-loop` run steps 2 to 8 of `arch-review` as their architecture step and use the same map. Use `/arch-review` by itself for a PR, a ref, or a review with no bug pass. In `session-review`, blocking architecture findings go into the fix plan. In `session-review-loop`, they are information only, because a design change needs a decision.
 
 ## Installation
 
